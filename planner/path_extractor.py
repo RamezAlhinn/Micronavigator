@@ -1,160 +1,161 @@
 import math
 from collections import deque
 
-# 8 possible moves (up, down, left, right, and diagonals)
-NEIGHBORS = [
-    (-1, 0),   # up
-    (1, 0),    # down
-    (0, -1),   # left
-    (0, 1),    # right
-    (-1, -1),  # up-left
-    (-1, 1),   # up-right
-    (1, -1),   # down-left
-    (1, 1),    # down-right
+# Direction vectors for 8-connected grid navigation
+DIRECTION_OFFSETS = [
+    (-1, 0),   # north
+    (1, 0),    # south
+    (0, -1),   # west
+    (0, 1),    # east
+    (-1, -1),  # northwest
+    (-1, 1),   # northeast
+    (1, -1),   # southwest
+    (1, 1),    # southeast
 ]
 
 def extract_path(potential, start, goal, statistics=None):
     """
-    Uses A* search guided by the potential field to find a path.
-    Falls back to simple gradient descent if A* fails.
+    Extracts a path from start to goal using the potential field.
+    Primary method: A* with potential field heuristic.
+    Fallback method: Steepest descent on potential gradient.
 
     Args:
-        potential: 2D potential field
-        start: (row, col) starting position
-        goal: (row, col) goal position
-        statistics: PlanningStatistics object (optional)
+        potential: 2D array of potential values
+        start: tuple (row, col) for starting location
+        goal: tuple (row, col) for target location
+        statistics: optional PlanningStatistics tracker
 
     Returns:
-        path: list of (row, col) tuples
+        list of (row, col) waypoints from start to goal
     """
-    # First try: A* search using potential as heuristic
-    path, nodes_explored = astar_search(potential, start, goal)
+    # Attempt A* pathfinding with potential field guidance
+    trajectory, explored_count = compute_astar_path(potential, start, goal)
 
     if statistics:
-        statistics.nodes_explored += nodes_explored
+        statistics.nodes_explored += explored_count
 
-    if path and path[-1] == goal:
-        return path
+    if trajectory and trajectory[-1] == goal:
+        return trajectory
 
-    # A* failed - likely no valid path exists
-    if not path:
-        print("A* search failed: no valid path exists from start to goal.")
-        print("The map may have obstacles blocking all routes.")
-        # Try gradient descent anyway to get as close as possible
-        return gradient_descent_path(potential, start, goal)
+    # A* unsuccessful - no feasible path found
+    if not trajectory:
+        print("A* pathfinding failed: start and goal may be disconnected.")
+        print("Obstacle configuration may prevent valid path.")
+        # Attempt steepest descent as backup
+        return compute_gradient_path(potential, start, goal)
 
-    # Fallback: gradient descent with cycle detection
-    print("A* found partial path, trying gradient descent...")
-    return gradient_descent_path(potential, start, goal)
+    # Backup strategy: steepest descent with loop prevention
+    print("A* returned incomplete path, applying gradient descent...")
+    return compute_gradient_path(potential, start, goal)
 
 
-def astar_search(potential, start, goal):
+def compute_astar_path(potential, start, goal):
     """
-    A* pathfinding using the potential field as a heuristic.
+    Implements A* algorithm with potential field as heuristic function.
 
     Returns:
-        tuple: (path, nodes_explored)
+        tuple: (waypoint_list, explored_node_count)
     """
     from heapq import heappush, heappop
 
-    rows = len(potential)
-    cols = len(potential[0])
+    grid_rows = len(potential)
+    grid_cols = len(potential[0])
 
-    # Priority queue: (f_score, g_score, position, path)
-    open_set = []
-    heappush(open_set, (potential[start[0]][start[1]], 0, start, [start]))
+    # Min-heap priority queue: (total_cost, accumulated_cost, position, trajectory)
+    frontier = []
+    heappush(frontier, (potential[start[0]][start[1]], 0, start, [start]))
 
-    # Track best g_score for each cell
-    g_scores = {start: 0}
+    # Maintain optimal cost to reach each position
+    cost_map = {start: 0}
 
-    # Limit iterations to prevent infinite loops
-    max_iterations = rows * cols * 4
-    iterations = 0
-    nodes_explored = 0
+    # Iteration limit for computational safety
+    iteration_limit = grid_rows * grid_cols * 4
+    iteration_count = 0
+    explored_nodes = 0
 
-    while open_set and iterations < max_iterations:
-        iterations += 1
-        f_score, g_score, current, path = heappop(open_set)
-        nodes_explored += 1
+    while frontier and iteration_count < iteration_limit:
+        iteration_count += 1
+        total_cost, accumulated_cost, current_pos, trajectory = heappop(frontier)
+        explored_nodes += 1
 
-        if current == goal:
-            return path, nodes_explored
+        if current_pos == goal:
+            return trajectory, explored_nodes
 
-        r, c = current
+        row, col = current_pos
 
-        for dr, dc in NEIGHBORS:
-            nr, nc = r + dr, c + dc
+        for delta_row, delta_col in DIRECTION_OFFSETS:
+            next_row, next_col = row + delta_row, col + delta_col
 
-            # Check bounds
-            if not (0 <= nr < rows and 0 <= nc < cols):
+            # Boundary validation
+            if not (0 <= next_row < grid_rows and 0 <= next_col < grid_cols):
                 continue
 
-            neighbor = (nr, nc)
+            next_pos = (next_row, next_col)
 
-            # Skip obstacles
-            if potential[nr][nc] == float("inf"):
+            # Obstacle check
+            if potential[next_row][next_col] == float("inf"):
                 continue
 
-            # Calculate cost (diagonal moves cost more)
-            move_cost = 1.414 if (dr != 0 and dc != 0) else 1.0
-            tentative_g = g_score + move_cost
+            # Edge cost (diagonal movements are longer)
+            edge_cost = math.sqrt(2) if (delta_row != 0 and delta_col != 0) else 1.0
+            new_accumulated_cost = accumulated_cost + edge_cost
 
-            # Only consider if this is a better path
-            if neighbor not in g_scores or tentative_g < g_scores[neighbor]:
-                g_scores[neighbor] = tentative_g
-                f_score = tentative_g + potential[nr][nc]
-                new_path = path + [neighbor]
-                heappush(open_set, (f_score, tentative_g, neighbor, new_path))
+            # Update if better path found
+            if next_pos not in cost_map or new_accumulated_cost < cost_map[next_pos]:
+                cost_map[next_pos] = new_accumulated_cost
+                estimated_total = new_accumulated_cost + potential[next_row][next_col]
+                updated_trajectory = trajectory + [next_pos]
+                heappush(frontier, (estimated_total, new_accumulated_cost, next_pos, updated_trajectory))
 
-    return [], nodes_explored
+    return [], explored_nodes
 
 
-def gradient_descent_path(potential, start, goal):
+def compute_gradient_path(potential, start, goal):
     """
-    Simple gradient descent following the potential field.
-    Allows revisiting cells but detects cycles.
+    Performs steepest gradient descent on the potential field.
+    Includes cycle detection to prevent infinite loops.
     """
-    path = [start]
-    current = start
-    recent_positions = deque(maxlen=20)  # Track recent positions to detect cycles
-    recent_positions.append(start)
+    waypoints = [start]
+    current_pos = start
+    position_history = deque(maxlen=20)  # Circular buffer for cycle detection
+    position_history.append(start)
 
-    max_steps = len(potential) * len(potential[0]) * 2
+    step_limit = len(potential) * len(potential[0]) * 2
 
-    for step in range(max_steps):
-        if current == goal:
-            return path
+    for step_num in range(step_limit):
+        if current_pos == goal:
+            return waypoints
 
-        r, c = current
-        best_neighbor = None
-        best_value = float("inf")
+        row, col = current_pos
+        lowest_neighbor = None
+        lowest_potential = float("inf")
 
-        # Find neighbor with lowest potential
-        for dr, dc in NEIGHBORS:
-            nr, nc = r + dr, c + dc
+        # Identify neighbor with minimum potential value
+        for delta_row, delta_col in DIRECTION_OFFSETS:
+            next_row, next_col = row + delta_row, col + delta_col
 
-            if 0 <= nr < len(potential) and 0 <= nc < len(potential[0]):
-                neighbor = (nr, nc)
-                v = potential[nr][nc]
+            if 0 <= next_row < len(potential) and 0 <= next_col < len(potential[0]):
+                neighbor_pos = (next_row, next_col)
+                neighbor_potential = potential[next_row][next_col]
 
-                if v < best_value:
-                    best_value = v
-                    best_neighbor = neighbor
+                if neighbor_potential < lowest_potential:
+                    lowest_potential = neighbor_potential
+                    lowest_neighbor = neighbor_pos
 
-        if best_neighbor is None or best_value == float("inf"):
-            print("Path extraction failed: no valid neighbors.")
-            return path
+        if lowest_neighbor is None or lowest_potential == float("inf"):
+            print("Gradient descent halted: no reachable neighbors.")
+            return waypoints
 
-        # Detect if we're cycling (visiting same positions repeatedly)
-        if step > 10 and best_neighbor in recent_positions:
-            cycle_count = list(recent_positions).count(best_neighbor)
-            if cycle_count > 2:
-                print("Path extraction failed: detected cycle.")
-                return path
+        # Cycle detection logic
+        if step_num > 10 and lowest_neighbor in position_history:
+            repetition_count = list(position_history).count(lowest_neighbor)
+            if repetition_count > 2:
+                print("Gradient descent halted: cyclic trajectory detected.")
+                return waypoints
 
-        path.append(best_neighbor)
-        recent_positions.append(best_neighbor)
-        current = best_neighbor
+        waypoints.append(lowest_neighbor)
+        position_history.append(lowest_neighbor)
+        current_pos = lowest_neighbor
 
-    print("Path extraction failed: exceeded step limit.")
-    return path
+    print("Gradient descent halted: maximum step limit reached.")
+    return waypoints

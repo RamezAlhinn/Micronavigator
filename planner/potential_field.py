@@ -7,49 +7,69 @@ from config.settings import (
 )
 
 def compute_potential_field(grid, goal):
-    rows = len(grid)
-    cols = len(grid[0])
+    """
+    Generates navigation potential field combining attractive and repulsive forces.
 
-    potential = [[0.0 for _ in range(cols)] for _ in range(rows)]
+    Args:
+        grid: 2D occupancy grid
+        goal: target position (row, col)
 
-    for r in range(rows):
-        for c in range(cols):
+    Returns:
+        2D array of potential values
+    """
+    num_rows = len(grid)
+    num_cols = len(grid[0])
 
-            if grid[r][c] == OBSTACLE:
-                potential[r][c] = float("inf")
+    potential_field = [[0.0 for _ in range(num_cols)] for _ in range(num_rows)]
+
+    for row_idx in range(num_rows):
+        for col_idx in range(num_cols):
+
+            if grid[row_idx][col_idx] == OBSTACLE:
+                potential_field[row_idx][col_idx] = float("inf")
                 continue
 
-            # Attractive Potential (pull toward goal)
-            # Far from goal → high value
-            # Close to goal → low value
-            dist_goal = math.dist((r, c), goal)
-            U_att = ATTRACTIVE_GAIN * dist_goal
+            # Attractive component: pulls robot toward goal
+            # Larger distance → higher potential
+            goal_distance = math.dist((row_idx, col_idx), goal)
+            attractive_potential = ATTRACTIVE_GAIN * goal_distance
 
-            # Repulsive Potential (push away from obstacles)
-            min_dist_obs = find_distance_to_nearest_obstacle(grid, r, c)
-            
-            if min_dist_obs <= OBSTACLE_INFLUENCE:
-                U_rep = REPULSIVE_GAIN * (1.0 / min_dist_obs - 1.0 / OBSTACLE_INFLUENCE) ** 2
+            # Repulsive component: pushes robot away from obstacles
+            obstacle_distance = compute_nearest_obstacle_distance(grid, row_idx, col_idx)
+
+            if obstacle_distance <= OBSTACLE_INFLUENCE:
+                repulsive_potential = REPULSIVE_GAIN * (1.0 / obstacle_distance - 1.0 / OBSTACLE_INFLUENCE) ** 2
             else:
-                U_rep = 0
+                repulsive_potential = 0
 
-            # Combine both potentials
-            potential[r][c] = U_att + U_rep
+            # Superposition of potential fields
+            potential_field[row_idx][col_idx] = attractive_potential + repulsive_potential
 
-    return potential
+    return potential_field
 
 
-def find_distance_to_nearest_obstacle(grid, r, c):
-    rows = len(grid)
-    cols = len(grid[0])
+def compute_nearest_obstacle_distance(grid, row, col):
+    """
+    Calculates Euclidean distance from given position to closest obstacle.
 
-    min_dist = float("inf")
+    Args:
+        grid: 2D occupancy grid
+        row: query row index
+        col: query column index
 
-    for rr in range(rows):
-        for cc in range(cols):
-            if grid[rr][cc] == OBSTACLE:
-                d = math.dist((r, c), (rr, cc))
-                if d < min_dist:
-                    min_dist = d
+    Returns:
+        minimum distance to any obstacle cell
+    """
+    num_rows = len(grid)
+    num_cols = len(grid[0])
 
-    return min_dist
+    minimum_distance = float("inf")
+
+    for obstacle_row in range(num_rows):
+        for obstacle_col in range(num_cols):
+            if grid[obstacle_row][obstacle_col] == OBSTACLE:
+                distance = math.dist((row, col), (obstacle_row, obstacle_col))
+                if distance < minimum_distance:
+                    minimum_distance = distance
+
+    return minimum_distance

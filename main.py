@@ -13,56 +13,56 @@ from config.settings import ROBOT_WIDTH, ROBOT_HEIGHT
 
 def main():
     print("\n" + "="*60)
-    print(" MICRO-NAVIGATOR - SINGLE SCENARIO RUN")
+    print(" MICRO-NAVIGATOR - SINGLE SCENARIO EXECUTION")
     print("="*60)
 
-    # Initialize statistics tracker
-    stats = PlanningStatistics()
+    # Create statistics tracking object
+    performance_tracker = PlanningStatistics()
 
-    # 1) Load the map
-    grid, start, goal = load_grid("map/example_map.txt")
-    print(f"Start: {start}, Goal: {goal}")
-    print(f"Robot Size: {ROBOT_HEIGHT} x {ROBOT_WIDTH} cells")
+    # Step 1: Load environment map
+    environment_grid, start_position, goal_position = load_grid("map/example_map.txt")
+    print(f"Start Position: {start_position}, Goal Position: {goal_position}")
+    print(f"Robot Dimensions: {ROBOT_HEIGHT} x {ROBOT_WIDTH} cells")
 
-    # Set map info for statistics
-    stats.set_map_info(grid, ROBOT_WIDTH, ROBOT_HEIGHT)
+    # Configure statistics with map parameters
+    performance_tracker.set_map_info(environment_grid, ROBOT_WIDTH, ROBOT_HEIGHT)
 
-    # 2) Show the map
-    draw_map(grid)
+    # Step 2: Render occupancy grid
+    draw_map(environment_grid)
 
-    # 3) Inflate obstacles to account for robot shape
-    print("\nInflating obstacles for robot shape...")
-    inflated_grid = inflate_obstacles(grid, ROBOT_WIDTH, ROBOT_HEIGHT)
+    # Step 3: Apply obstacle expansion for robot geometry
+    print("\nExpanding obstacles to account for robot footprint...")
+    expanded_grid = inflate_obstacles(environment_grid, ROBOT_WIDTH, ROBOT_HEIGHT)
 
-    # 4) Compute potential field
-    print("Computing potential field...")
-    stats.start_timer()
-    potential = compute_potential_field(inflated_grid, goal)
+    # Step 4: Generate navigation potential field
+    print("Generating navigation potential field...")
+    performance_tracker.start_timer()
+    navigation_potential = compute_potential_field(expanded_grid, goal_position)
 
-    # 5) Extract path
-    print("Extracting path...")
-    path = extract_path(potential, start, goal, statistics=stats)
-    stats.stop_timer()
+    # Step 5: Compute trajectory
+    print("Computing optimal trajectory...")
+    trajectory = extract_path(navigation_potential, start_position, goal_position, statistics=performance_tracker)
+    performance_tracker.stop_timer()
 
-    # 6) Check success
-    if path and path[-1] == goal:
-        stats.set_success(True)
-        stats.set_path_info(path)
-        print(f"Path found! Length: {len(path)} steps")
+    # Step 6: Validate path completion
+    if trajectory and trajectory[-1] == goal_position:
+        performance_tracker.set_success(True)
+        performance_tracker.set_path_info(trajectory)
+        print(f"Trajectory successfully computed! Length: {len(trajectory)} waypoints")
     else:
-        stats.set_success(False, "Did not reach goal")
-        print("Warning: Path did not reach goal")
+        performance_tracker.set_success(False, "Goal position not reached")
+        print("Warning: Trajectory terminated before reaching goal")
 
-    # 7) Visualize path
-    draw_path(grid, path)
-    print("Path visualization saved to path_output.png")
+    # Step 7: Generate path visualization
+    draw_path(environment_grid, trajectory)
+    print("Trajectory visualization saved to path_output.png")
 
-    # 8) Export path for the robot
-    export_path(path, "robot/path_output.csv")
-    print("Path exported to robot/path_output.csv")
+    # Step 8: Export waypoints for robot controller
+    export_path(trajectory, "robot/path_output.csv")
+    print("Waypoint data exported to robot/path_output.csv")
 
-    # 9) Print statistics
-    print("\n" + stats.get_summary())
+    # Step 9: Display performance metrics
+    print("\n" + performance_tracker.get_summary())
 
 if __name__ == "__main__":
     main()

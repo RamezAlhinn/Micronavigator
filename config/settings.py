@@ -1,20 +1,20 @@
-# This file holds all parameters in one place so you can tune the behavior
-# General settings for the planner
+# Configuration Parameters for Path Planning System
+# Modify these values to tune system behavior
 
-# Map characters
-FREE = 0
-OBSTACLE = 1
-START = 2
-GOAL = 3
+# Grid Cell Type Identifiers
+FREE = 0        # Navigable free space
+OBSTACLE = 1    # Impassable obstacle
+START = 2       # Initial robot position
+GOAL = 3        # Target destination
 
-# Potential field parameters
-ATTRACTIVE_GAIN = 1.0     # strength of goal attraction
-REPULSIVE_GAIN = 50.0     # strength of obstacle repulsion
-OBSTACLE_INFLUENCE = 3    # how many grid cells around an obstacle repel the robot
+# Potential Field Tuning Parameters
+ATTRACTIVE_GAIN = 1.0       # Goal attraction coefficient
+REPULSIVE_GAIN = 50.0       # Obstacle repulsion coefficient
+OBSTACLE_INFLUENCE = 3      # Repulsive field radius (grid cells)
 
-# Robot settings
-ROBOT_WIDTH = 2           # in grid cells (simple inflation model)
-ROBOT_HEIGHT = 2
+# Robot Geometric Configuration
+ROBOT_WIDTH = 2             # Horizontal dimension (grid cells)
+ROBOT_HEIGHT = 2            # Vertical dimension (grid cells)
 
-# Visualization settings
-SHOW_POTENTIAL = True
+# Visualization Control
+SHOW_POTENTIAL = True       # Enable potential field visualization
