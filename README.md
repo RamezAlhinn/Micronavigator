@@ -9,7 +9,12 @@ Micro-Navigator is an autonomous path planning system designed for rectangular r
 - **Potential Field Algorithm**: Implements attractive and repulsive potential fields for smooth path generation
 - **Configurable Robot Dimensions**: Supports variable robot sizes with automatic obstacle inflation
 - **Performance Analytics**: Comprehensive statistics tracking including path length, computation time, and success metrics
-- **Visualization Tools**: Automated generation of path and map visualizations
+- **Advanced Visualization**:
+  - Static path visualizations with detailed scenario information
+  - Animated GIF showing robot movement along the planned path
+  - Performance benchmark charts with detailed metrics analysis
+  - Comparison charts for multiple scenarios
+- **Flexible Scenario Runner**: Run individual scenarios or multiple scenarios with a single command
 - **Export Capabilities**: CSV output format compatible with robot control systems
 
 ## System Architecture
@@ -45,38 +50,60 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Single Scenario Execution
+**Quick Start:** See [QUICKSTART.md](QUICKSTART.md) for a quick reference guide.
 
-Run path planning on the default map configuration:
+### Run Individual or Multiple Scenarios
 
-```bash
-conda activate micronavigator
-python main.py
-```
-
-**Outputs:**
-- `map_output.png` - Visualization of the occupancy grid
-- `path_output.png` - Generated path overlay on the map
-- `robot/path_output.csv` - Waypoint coordinates for robot execution
-
-### Batch Evaluation
-
-Execute comprehensive performance benchmarking across multiple scenarios:
+The scenario runner allows flexible execution of test scenarios:
 
 ```bash
-conda activate micronavigator
-python run_evaluation.py
+# List all available scenarios
+python run_scenarios.py --list
+
+# Run all scenarios
+python run_scenarios.py
+
+# Run a specific scenario (e.g., scenario 1)
+python run_scenarios.py 1
+
+# Run multiple specific scenarios (e.g., 1, 3, and 5)
+python run_scenarios.py 1 3 5
 ```
 
-The evaluation suite tests various configurations including:
-- Multiple map topologies (simple, corridor, maze, cluttered, narrow, large)
-- Different robot dimensions (1x1 to 5x5 grid cells)
-- Performance metrics: path optimality, planning time, exploration efficiency
+**Available Scenarios:**
+
+High-Resolution (Best for Demonstrations):
+1. Open Space Navigation - Obstacle-free pathfinding
+2. Corridor Traversal - Constrained passage navigation
+3. Complex Maze - Multi-turn maze solving
+4. Dense Obstacle Field - High-density obstacle avoidance
+5. Narrow Gap Challenge - Precision maneuvering
+6. Large-Scale Environment - Extended range planning
+
+Standard Resolution (Fast Testing):
+7-12. Same scenarios in standard resolution for rapid iteration
 
 **Outputs:**
-- `evaluation/results.json` - Detailed results in JSON format
-- `evaluation/results.csv` - Tabular results for analysis
-- `evaluation/*_path.png` - Individual scenario visualizations
+- `output/scenarioN_path.png` - Static visualization with scenario info, path, and markers
+- `output/scenarioN_animation.gif` - Animated GIF showing robot movement along the path
+- `output/scenarioN_benchmark.png` - Performance metrics and analysis chart
+- `output/scenarioN_path.csv` - Waypoint coordinates for robot execution
+- `output/benchmark_comparison.png` - Comparison chart (when running multiple scenarios)
+- Terminal output with detailed statistics and summary
+
+### System Verification
+
+Verify all modules and scenarios are properly configured:
+
+```bash
+python verify_system.py
+```
+
+This checks:
+- Required Python packages (matplotlib, numpy)
+- Project file structure
+- All 12 scenario map files
+- Scenario runner configuration
 
 ## Configuration
 
