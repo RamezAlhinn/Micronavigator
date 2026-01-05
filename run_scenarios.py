@@ -17,7 +17,6 @@ from map.grid_loader import load_grid
 from planner.potential_field import compute_potential_field
 from planner.path_extractor import extract_path
 from planner.statistics import PlanningStatistics
-from visualization.draw_map import draw_map
 from visualization.draw_path import draw_path
 from visualization.draw_animation import create_animation
 from visualization.draw_benchmark import create_single_scenario_benchmark, create_benchmark_chart

@@ -40,7 +40,6 @@ def check_project_structure():
 
     required_files = [
         'run_scenarios.py',
-        'main.py',
         'config/settings.py',
         'map/grid_loader.py',
         'planner/potential_field.py',
@@ -52,6 +51,7 @@ def check_project_structure():
         'visualization/draw_map.py',
         'robot/exporter.py',
         'robot/shape_handler.py',
+        'evaluation/evaluator.py',
     ]
 
     missing = []
